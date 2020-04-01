@@ -70,6 +70,7 @@ static void      proc_server_cmd(int, char *);
 static int       read_line(int, char *, size_t);
 static void      run(int, const char *);
 static void      setup(void);
+static void      autojoin(const int);
 static void      sighandler(int);
 static int       tcpopen(const char *, const char *);
 static size_t    tokenize(char **, size_t, char *, int);
@@ -103,6 +104,29 @@ usage(void)
 {
 	die("usage: %s -s host [-p port | -u sockname] [-i ircdir]\n"
 	    "	[-n nickname] [-f fullname] [-k env_pass]\n", argv0);
+}
+
+static void
+autojoin(const int ircfd) {
+	char path[PATH_MAX];
+	char buf[BUFSIZ];
+	int fd, ret;
+
+	snprintf(path, sizeof(path), "%s/join", ircpath);
+	fd = open(path, O_RDONLY);
+	if (fd == -1) {
+		fprintf(stderr, "join file does not exist\n");
+		return;
+	}
+
+	fprintf(stderr, "Located join file\n");
+	while ((ret = read_line(fd, buf, sizeof buf)) != -1) {
+		fprintf(stderr, "joining to: %s.\n", buf);
+		snprintf(msg, sizeof(msg), "JOIN %s\r\n", buf);
+		channel_join(buf);
+		ewritestr(ircfd, msg);
+	}
+	close(fd);
 }
 
 static void
@@ -859,6 +883,7 @@ main(int argc, char *argv[])
 		loginkey(ircfd, key);
 	loginuser(ircfd, host, fullname && *fullname ? fullname : nick);
 	setup();
+	autojoin(ircfd);
 	run(ircfd, host);
 	cleanup();
 
