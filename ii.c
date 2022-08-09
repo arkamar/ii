@@ -56,6 +56,7 @@ static int       channel_reopen(Channel *);
 static void      channel_rm(Channel *);
 static void      create_dirtree(const char *);
 static void      create_filepath(char *, size_t, const char *, const char *, const char *);
+static void      die(const char *, ...);
 static void      ewritestr(int, const char *);
 static void      handle_channels_input(int, Channel *);
 static void      handle_server_output(int);
@@ -84,12 +85,22 @@ static char     ircpath[PATH_MAX]; /* irc dir (-i) */
 static char     msg[IRC_MSG_MAX];  /* message buf used for communication */
 
 static void
+die(const char *fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	vfprintf(stderr, fmt, ap);
+	va_end(ap);
+	exit(1);
+}
+
+static void
 usage(void)
 {
-	fprintf(stderr, "usage: %s <-s host> [-i <irc dir>] [-p <port>] "
+	die("usage: %s <-s host> [-i <irc dir>] [-p <port>] "
 	        "[-u <sockname>] [-n <nick>] [-k <password>] "
 	        "[-f <fullname>]\n", argv0);
-	exit(1);
 }
 
 static void
@@ -103,10 +114,8 @@ ewritestr(int fd, const char *s)
 		if ((w = write(fd, s + off, len - off)) == -1)
 			break;
 	}
-	if (w == -1) {
-		fprintf(stderr, "%s: write: %s\n", argv0, strerror(errno));
-		exit(1);
-	}
+	if (w == -1)
+		die("%s: write: %s\n", argv0, strerror(errno));
 }
 
 /* creates directories bottom-up, if necessary */
@@ -184,8 +193,7 @@ create_filepath(char *filepath, size_t len, const char *path,
 	return;
 
 error:
-	fprintf(stderr, "%s: path to irc directory too long\n", argv0);
-	exit(1);
+	die("%s: path to irc directory too long\n", argv0);
 }
 
 static int
@@ -229,10 +237,8 @@ channel_new(const char *name)
 	strlcpy(channelpath, name, sizeof(channelpath));
 	channel_normalize_path(channelpath);
 
-	if (!(c = calloc(1, sizeof(Channel)))) {
-		fprintf(stderr, "%s: calloc: %s\n", argv0, strerror(errno));
-		exit(1);
-	}
+	if (!(c = calloc(1, sizeof(Channel))))
+		die("%s: calloc: %s\n", argv0, strerror(errno));
 
 	strlcpy(c->name, name, sizeof(c->name));
 	channel_normalize_name(c->name);
@@ -341,21 +347,17 @@ udsopen(const char *uds)
 	size_t len;
 	int fd;
 
-	if ((fd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
-		fprintf(stderr, "%s: socket: %s\n", argv0, strerror(errno));
-		exit(1);
-	}
+	if ((fd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1)
+		die("%s: socket: %s\n", argv0, strerror(errno));
 
 	sun.sun_family = AF_UNIX;
-	if (strlcpy(sun.sun_path, uds, sizeof(sun.sun_path)) >= sizeof(sun.sun_path)) {
-		fprintf(stderr, "%s: UNIX domain socket path truncation\n", argv0);
-		exit(1);
-	}
+	if (strlcpy(sun.sun_path, uds, sizeof(sun.sun_path)) >= sizeof(sun.sun_path))
+		die("%s: UNIX domain socket path truncation\n", argv0);
+
 	len = strlen(sun.sun_path) + 1 + sizeof(sun.sun_family);
-	if (connect(fd, (struct sockaddr *)&sun, len) == -1) {
-		fprintf(stderr, "%s: connect: %s\n", argv0, strerror(errno));
-		exit(1);
-	}
+	if (connect(fd, (struct sockaddr *)&sun, len) == -1)
+		die("%s: connect: %s\n", argv0, strerror(errno));
+
 	return fd;
 }
 
@@ -370,10 +372,8 @@ tcpopen(const char *host, const char *service)
 	hints.ai_flags = AI_NUMERICSERV; /* avoid name lookup for port */
 	hints.ai_socktype = SOCK_STREAM;
 
-	if ((e = getaddrinfo(host, service, &hints, &res))) {
-		fprintf(stderr, "%s: getaddrinfo: %s\n", argv0, gai_strerror(e));
-		exit(1);
-	}
+	if ((e = getaddrinfo(host, service, &hints, &res)))
+		die("%s: getaddrinfo: %s\n", argv0, gai_strerror(e));
 
 	for (rp = res; rp; rp = rp->ai_next) {
 		fd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
@@ -386,11 +386,9 @@ tcpopen(const char *host, const char *service)
 		}
 		break; /* success */
 	}
-	if (fd == -1) {
-		fprintf(stderr, "%s: could not connect to %s:%s: %s\n",
+	if (fd == -1)
+		die("%s: could not connect to %s:%s: %s\n",
 			argv0, host, service, strerror(errno));
-		exit(1);
-	}
 
 	freeaddrinfo(res);
 	return fd;
@@ -705,11 +703,9 @@ handle_server_output(int ircfd)
 {
 	char buf[IRC_MSG_MAX];
 
-	if (read_line(ircfd, buf, sizeof(buf)) == -1) {
-		fprintf(stderr, "%s: remote host closed connection: %s\n",
-		        argv0, strerror(errno));
-		exit(1);
-	}
+	if (read_line(ircfd, buf, sizeof(buf)) == -1)
+		die("%s: remote host closed connection: %s\n", argv0, strerror(errno));
+
 	fprintf(stdout, "%lu %s\n", (unsigned long)time(NULL), buf);
 	fflush(stdout);
 	proc_server_cmd(ircfd, buf);
@@ -758,8 +754,7 @@ run(int ircfd, const char *host)
 		if (r < 0) {
 			if (errno == EINTR)
 				continue;
-			fprintf(stderr, "%s: select: %s\n", argv0, strerror(errno));
-			exit(1);
+			die("%s: select: %s\n", argv0, strerror(errno));
 		} else if (r == 0) {
 			if (time(NULL) - last_response >= PING_TIMEOUT) {
 				channel_print(channelmaster, "-!- ii shutting down: ping timeout");
@@ -791,10 +786,9 @@ main(int argc, char *argv[])
 	int ircfd, r;
 
 	/* use nickname and home dir of user by default */
-	if (!(spw = getpwuid(getuid()))) {
-		fprintf(stderr, "%s: getpwuid: %s\n", argv0, strerror(errno));
-		exit(1);
-	}
+	if (!(spw = getpwuid(getuid())))
+		die("%s: getpwuid: %s\n", argv0, strerror(errno));
+
 	strlcpy(nick, spw->pw_name, sizeof(nick));
 	snprintf(prefix, sizeof(prefix), "%s/irc", spw->pw_dir);
 
@@ -835,17 +829,13 @@ main(int argc, char *argv[])
 
 #ifdef __OpenBSD__
 	/* OpenBSD pledge(2) support */
-	if (pledge("stdio rpath wpath cpath dpath", NULL) == -1) {
-		fprintf(stderr, "%s: pledge: %s\n", argv0, strerror(errno));
-		exit(1);
-	}
+	if (pledge("stdio rpath wpath cpath dpath", NULL) == -1)
+		die("%s: pledge: %s\n", argv0, strerror(errno));
 #endif
 
 	r = snprintf(ircpath, sizeof(ircpath), "%s/%s", prefix, host);
-	if (r < 0 || (size_t)r >= sizeof(ircpath)) {
-		fprintf(stderr, "%s: path to irc directory too long\n", argv0);
-		exit(1);
-	}
+	if (r < 0 || (size_t)r >= sizeof(ircpath))
+		die("%s: path to irc directory too long\n", argv0);
 	create_dirtree(ircpath);
 
 	channelmaster = channel_add(""); /* master channel */
