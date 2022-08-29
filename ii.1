@@ -9,7 +9,9 @@ ii - irc it or irc improved
 .I port
 |
 .B -u
-.IR sockname ]
+.I sockname
+|
+.BR -U ]
 .RB [ -i
 .IR ircdir ]
 .RB [ -n
@@ -45,6 +47,10 @@ connect to a UNIX domain socket instead of directly to a server.
 If set, the
 .B -p
 option will be ignored.
+.TP
+.B -U
+use connection established in advance by ucspi tool with two file descriptors
+open, 6 and 7, the first one for reading and the later one for writing.
 .TP
 .BI -i " ircdir"
 lets you override the default irc path (~/irc)

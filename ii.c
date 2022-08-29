@@ -60,7 +60,7 @@ static void      create_filepath(char *, size_t, const char *, const char *, con
 static void      die(const char *, ...);
 static void      ewritestr(int, const char *);
 static void      handle_channels_input(int, Channel *);
-static void      handle_server_output(int);
+static void      handle_server_output(int, int);
 static int       isnumeric(const char *);
 static void      loginkey(int, const char *);
 static void      loginuser(int, const char *, const char *);
@@ -68,7 +68,7 @@ static void      proc_channels_input(int, Channel *, char *);
 static void      proc_channels_privmsg(int, Channel *, char *);
 static void      proc_server_cmd(int, char *);
 static int       read_line(int, char *, size_t);
-static void      run(int, const char *);
+static void      run(int, int, const char *);
 static void      setup(void);
 static void      sighandler(int);
 static int       tcpopen(const char *, const char *);
@@ -101,7 +101,7 @@ die(const char *fmt, ...)
 static void
 usage(void)
 {
-	die("usage: %s -s host [-p port | -u sockname] [-i ircdir]\n"
+	die("usage: %s -s host [-p port | -u sockname | -U] [-i ircdir]\n"
 	    "	[-n nickname] [-f fullname] [-k env_pass]\n", argv0);
 }
 
@@ -715,16 +715,16 @@ handle_channels_input(int ircfd, Channel *c)
 }
 
 static void
-handle_server_output(int ircfd)
+handle_server_output(int ircrfd, int ircwfd)
 {
 	char buf[IRC_MSG_MAX];
 
-	if (read_line(ircfd, buf, sizeof(buf)) == -1)
+	if (read_line(ircrfd, buf, sizeof(buf)) == -1)
 		die("%s: remote host closed connection: %s\n", argv0, strerror(errno));
 
 	fprintf(stdout, "%lu %s\n", (unsigned long)time(NULL), buf);
 	fflush(stdout);
-	proc_server_cmd(ircfd, buf);
+	proc_server_cmd(ircwfd, buf);
 }
 
 static void
@@ -746,7 +746,7 @@ setup(void)
 }
 
 static void
-run(int ircfd, const char *host)
+run(int ircrfd, int ircwfd, const char *host)
 {
 	Channel *c, *tmp;
 	fd_set rdset;
@@ -756,9 +756,9 @@ run(int ircfd, const char *host)
 
 	snprintf(ping_msg, sizeof(ping_msg), "PING %s\r\n", host);
 	while (isrunning) {
-		maxfd = ircfd;
+		maxfd = ircrfd;
 		FD_ZERO(&rdset);
-		FD_SET(ircfd, &rdset);
+		FD_SET(ircrfd, &rdset);
 		for (c = channels; c; c = c->next) {
 			if (c->fdin > maxfd)
 				maxfd = c->fdin;
@@ -777,17 +777,17 @@ run(int ircfd, const char *host)
 				cleanup();
 				exit(2); /* status code 2 for timeout */
 			}
-			ewritestr(ircfd, ping_msg);
+			ewritestr(ircwfd, ping_msg);
 			continue;
 		}
-		if (FD_ISSET(ircfd, &rdset)) {
-			handle_server_output(ircfd);
+		if (FD_ISSET(ircrfd, &rdset)) {
+			handle_server_output(ircrfd, ircwfd);
 			last_response = time(NULL);
 		}
 		for (c = channels; c; c = tmp) {
 			tmp = c->next;
 			if (FD_ISSET(c->fdin, &rdset))
-				handle_channels_input(ircfd, c);
+				handle_channels_input(ircwfd, c);
 		}
 	}
 }
@@ -799,7 +799,7 @@ main(int argc, char *argv[])
 	const char *key = NULL, *fullname = NULL, *host = "";
 	const char *uds = NULL, *service = "6667";
 	char prefix[PATH_MAX];
-	int ircfd, r;
+	int ircwfd, ircrfd, r, ucspi = 0;
 
 	/* use nickname and home dir of user by default */
 	if (!(spw = getpwuid(getuid())))
@@ -830,6 +830,9 @@ main(int argc, char *argv[])
 	case 'u':
 		uds = EARGF(usage());
 		break;
+	case 'U':
+		ucspi = 1;
+		break;
 	default:
 		usage();
 		break;
@@ -838,10 +841,14 @@ main(int argc, char *argv[])
 	if (!*host)
 		usage();
 
-	if (uds)
-		ircfd = udsopen(uds);
-	else
-		ircfd = tcpopen(host, service);
+	if (ucspi) {
+		ircrfd = 6;
+		ircwfd = 7;
+	} else if (uds) {
+		ircrfd = ircwfd = udsopen(uds);
+	} else {
+		ircrfd = ircwfd = tcpopen(host, service);
+	}
 
 #ifdef __OpenBSD__
 	/* OpenBSD pledge(2) support */
@@ -856,10 +863,10 @@ main(int argc, char *argv[])
 
 	channelmaster = channel_add(""); /* master channel */
 	if (key)
-		loginkey(ircfd, key);
-	loginuser(ircfd, host, fullname && *fullname ? fullname : nick);
+		loginkey(ircwfd, key);
+	loginuser(ircwfd, host, fullname && *fullname ? fullname : nick);
 	setup();
-	run(ircfd, host);
+	run(ircrfd, ircwfd, host);
 	cleanup();
 
 	return 0;
