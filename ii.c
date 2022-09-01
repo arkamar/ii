@@ -499,8 +499,8 @@ proc_channels_input(int ircfd, Channel *c, char *buf)
 				else
 					snprintf(msg, sizeof(msg), "JOIN %s\r\n", &buf[3]);
 				channel_join(&buf[3]);
-			} else if (p) {
-				if ((c = channel_join(&buf[3])))
+			} else {
+				if ((c = channel_join(&buf[3])) && p)
 					proc_channels_privmsg(ircfd, c, p + 1);
 				return;
 			}
