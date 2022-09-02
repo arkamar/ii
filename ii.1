@@ -52,7 +52,8 @@ lets you override the default nick ($USER)
 lets you specify your real name associated with your nick
 .TP
 .BI \-k " environment variable"
-lets you specify an environment variable that contains your IRC password, e.g. IIPASS="foobar" ii -k IIPASS.
+lets you specify an environment variable that contains your IRC password,
+e.g. IIPASS="foobar" ii -k IIPASS.
 This is done in order to prevent other users from eavesdropping the server
 password via the process list.
 .SH DIRECTORIES
@@ -83,11 +84,10 @@ quit ii
 .BI /t " topic"
 set the topic of a channel
 .SH RAW COMMANDS
-.LP
-Everything which is not a command will be posted into the channel or to the server.
-So if you need /who just write /WHO as described in RFC#1459 to the server in FIFO.
+Everything which is not a command will be posted into the channel or to the
+server.  So if you need /who just write /WHO as described in RFC#1459 to the
+server in FIFO.
 .SH SSL/TLS PROTOCOL SUPPORT
-.LP
 For SSL/TLS protocol support you can connect to a local tunnel, for example
 with stunnel or socat.
 .SH SEE ALSO
