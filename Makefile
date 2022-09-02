@@ -1,26 +1,38 @@
-# See LICENSE file for copyright and license details.
 .POSIX:
 
-include config.mk
+VERSION = 1.9
+
+# paths
+PREFIX    = /usr/local
+MANPREFIX = $(PREFIX)/share/man
+DOCPREFIX = $(PREFIX)/share/doc
 
 SRC = ii.c
 OBJ = $(SRC:.c=.o)
 
-IICFLAGS = -DVERSION=\"$(VERSION)\" -D_DEFAULT_SOURCE $(CFLAGS)
+# use system flags.
+II_CFLAGS = $(CFLAGS)
+II_LDFLAGS = $(LDFLAGS)
+
+# on systems which provide strlcpy(3),
+# remove NEED_STRLCPY from CPPFLAGS and
+# remove strlcpy.o from LIBS
+II_CPPFLAGS = $(CPPFLAGS) -DVERSION=\"$(VERSION)\" -D_DEFAULT_SOURCE -DNEED_STRLCPY
+LIBS        = strlcpy.o
 
 all: ii
 
 options:
 	@echo ii build options:
-	@echo "CFLAGS   = $(IICFLAGS)"
+	@echo "CFLAGS   = $(CFLAGS)"
 	@echo "LDFLAGS  = $(LDFLAGS)"
 	@echo "CC       = $(CC)"
 
 .c.o:
-	$(CC) $(IICFLAGS) -c $<
+	$(CC) -c $< $(II_CFLAGS) $(II_CPPFLAGS)
 
 ii: $(OBJ) $(LIBS)
-	$(CC) $(LDFLAGS) -o $@ $(OBJ) $(LIBS)
+	$(CC) -o $@ $(OBJ) $(LIBS) $(II_LDFLAGS)
 
 $(OBJ): arg.h
 
@@ -40,7 +52,7 @@ uninstall: all
 dist: clean
 	mkdir -p ii-$(VERSION)
 	cp -R Makefile CHANGES README FAQ LICENSE strlcpy.c arg.h \
-		config.mk ii.c ii.1 ii-$(VERSION)
+		ii.c ii.1 ii-$(VERSION)
 	tar -cf ii-$(VERSION).tar ii-$(VERSION)
 	gzip ii-$(VERSION).tar
 	rm -rf ii-$(VERSION)
