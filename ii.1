@@ -18,35 +18,33 @@ and ii creates a new channel directory with in and out file.
 .SH SYNOPSIS
 .B ii
 .RB < \-s
-.IR servername >
+.IR host >
 .RB [ \-p
 .IR port ]
-.RB [ \-k
-.IR "environment variable" ]
+|
+.RB < \-u
+.IR sockname >
+
 .RB [ \-i
-.IR prefix ]
+.IR ircdir ]
 .RB [ \-n
 .IR nickname ]
 .RB [ \-f
 .IR realname ]
-.RB < \-u
-.IR sockname >
+.RB [ \-k
+.IR "environment variable" ]
 .SH OPTIONS
 .TP
 .BI \-s " servername"
-server to connect to, for example: irc.freenode.net
-.TP
-.BI \-u " sockname"
-connect to a UNIX domain socket instead of directly to a server.
+server/host to connect to, for example: irc.freenode.net
 .TP
 .BI \-p " port"
 lets you override the default port (6667)
 .TP
-.BI \-k " environment variable"
-lets you specify an environment variable that contains your IRC password, e.g. IIPASS="foobar" ii -k IIPASS.
-This is done in order to prevent other users from eavesdropping the server password via the process list.
+.BI \-u " sockname"
+connect to a UNIX domain socket instead of directly to a server.
 .TP
-.BI \-i " prefix"
+.BI \-i " ircdir"
 lets you override the default irc path (~/irc)
 .TP
 .BI \-n " nickname"
@@ -54,6 +52,11 @@ lets you override the default nick ($USER)
 .TP
 .BI \-f " realname"
 lets you specify your real name associated with your nick
+.TP
+.BI \-k " environment variable"
+lets you specify an environment variable that contains your IRC password, e.g. IIPASS="foobar" ii -k IIPASS.
+This is done in order to prevent other users from eavesdropping the server
+password via the process list.
 .SH DIRECTORIES
 .TP
 .B ~/irc
@@ -85,16 +88,10 @@ set the topic of a channel
 .LP
 Everything which is not a command will be posted into the channel or to the server.
 So if you need /who just write /WHO as described in RFC#1459 to the server in FIFO.
-.SH SSL PROTOCOL SUPPORT
+.SH SSL/TLS PROTOCOL SUPPORT
 .LP
-For TLS/SSL protocol support you can connect to a local tunnel, for example with stunnel or socat.
-.SH CONTACT
-.LP
-Subscribe to the mailinglist and write to dev (at) suckless (dot) org for suggestions, fixes, etc.
-.SH AUTHORS
-ii engineers, see LICENSE file
+For SSL/TLS protocol support you can connect to a local tunnel, for example
+with stunnel or socat.
 .SH SEE ALSO
 .BR echo (1),
 .BR tail (1)
-.SH BUGS
-Please report them!

@@ -98,9 +98,9 @@ die(const char *fmt, ...)
 static void
 usage(void)
 {
-	die("usage: %s <-s host> [-i <irc dir>] [-p <port>] "
-	        "[-u <sockname>] [-n <nick>] [-k <password>] "
-	        "[-f <fullname>]\n", argv0);
+	die("usage: %s <-s host> [-p <port>] | <-u sockname>\n"
+	    "	[-i <ircdir>] "
+	    "	[-n <nick>] [-f <fullname>] [-k <password>]\n", argv0);
 }
 
 static void
