@@ -53,8 +53,7 @@ dist: clean
 	mkdir -p ii-$(VERSION)
 	cp -R Makefile README FAQ LICENSE strlcpy.c arg.h \
 		ii.c ii.1 ii-$(VERSION)
-	tar -cf ii-$(VERSION).tar ii-$(VERSION)
-	gzip ii-$(VERSION).tar
+	tar -cf - ii-$(VERSION) | gzip -c > ii-$(VERSION).tar.gz
 	rm -rf ii-$(VERSION)
 
 clean:
