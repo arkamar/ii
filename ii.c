@@ -54,7 +54,7 @@ static int       channel_open(Channel *);
 static void      channel_print(Channel *, const char *);
 static int       channel_reopen(Channel *);
 static void      channel_rm(Channel *);
-static void      clean(void);
+static void      cleanup(void);
 static void      create_dirtree(const char *);
 static void      create_filepath(char *, size_t, const char *, const char *, const char *);
 static void      die(const char *, ...);
@@ -94,7 +94,7 @@ die(const char *fmt, ...)
 	vfprintf(stderr, fmt, ap);
 	va_end(ap);
 
-	clean();
+	cleanup();
 	exit(1);
 }
 
@@ -174,7 +174,7 @@ channel_normalize_name(char *s)
 }
 
 static void
-clean(void)
+cleanup(void)
 {
 	Channel *c, *tmp;
 
@@ -774,7 +774,7 @@ run(int ircfd, const char *host)
 		} else if (r == 0) {
 			if (time(NULL) - last_response >= PING_TIMEOUT) {
 				channel_print(channelmaster, "-!- ii shutting down: ping timeout");
-				clean();
+				cleanup();
 				exit(2); /* status code 2 for timeout */
 			}
 			ewritestr(ircfd, ping_msg);
@@ -860,7 +860,7 @@ main(int argc, char *argv[])
 	loginuser(ircfd, host, fullname && *fullname ? fullname : nick);
 	setup();
 	run(ircfd, host);
-	clean();
+	cleanup();
 
 	return 0;
 }
