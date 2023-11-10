@@ -121,18 +121,22 @@ autojoin(const int ircfd) {
 
 	fprintf(stderr, "Located join file\n");
 	while ((ret = read_line(fd, buf, sizeof buf)) != -1) {
-		char *p = NULL;
-		if ((p = strchr(buf, ' '))) { /* password parameter */
-			*p = '\0';
-		}
-		fprintf(stderr, "joining to: %s.\n", buf);
-		if (p) {
-			snprintf(msg, sizeof(msg), "JOIN %s %s\r\n", buf, p + 1);
+		if (buf[0] == '#') {
+			char *p = NULL;
+			if ((p = strchr(buf, ' '))) { /* password parameter */
+				*p = '\0';
+			}
+			fprintf(stderr, "joining to: %s.\n", buf);
+			if (p) {
+				snprintf(msg, sizeof(msg), "JOIN %s %s\r\n", buf, p + 1);
+			} else {
+				snprintf(msg, sizeof(msg), "JOIN %s\r\n", buf);
+			}
+			channel_join(buf);
+			ewritestr(ircfd, msg);
 		} else {
-			snprintf(msg, sizeof(msg), "JOIN %s\r\n", buf);
+			proc_channels_input(ircfd, channelmaster, buf);
 		}
-		channel_join(buf);
-		ewritestr(ircfd, msg);
 	}
 	close(fd);
 }
