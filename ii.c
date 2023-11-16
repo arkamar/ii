@@ -663,6 +663,9 @@ proc_server_cmd(int fd, char *buf)
 	} else if (!strcmp("PRIVMSG", argv[TOK_CMD])) {
 		snprintf(msg, sizeof(msg), "<%s> %s", argv[TOK_NICKSRV],
 				argv[TOK_TEXT] ? argv[TOK_TEXT] : "");
+	} else if (!strcmp("INVITE", argv[TOK_CMD])) {
+		snprintf(msg, sizeof(msg), "-!- %s invites you to %s",
+			argv[TOK_NICKSRV], argv[TOK_TEXT]);
 	} else {
 		return; /* can't read this message */
 	}
